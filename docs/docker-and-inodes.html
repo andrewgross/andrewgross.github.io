@@ -6,6 +6,7 @@
   <meta charset="utf-8" />
   <meta name="generator" content="Pelican" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="theme/css/main.css" />
 
 
 
@@ -38,11 +39,12 @@
 <li>The Pelican server does not notice changes to files and pick them up with autoreload.</li>
 </ol>
 <p>My best guess is that docker doesn't get to see inode events for its mounted drives, at least in my default configuration.  A little digging shows <a href="https://forums.docker.com/t/inotify-is-not-triggering-any-events-in-docker-when-we-mount-it-from-the-host/104570">this</a> issue from 2021. Seems like some folks don't see this same issue. Not worth the deep dive at this time, I just opened a second shell on the server and ran <code>watch -n 1</code> with the generation command.</p>
-  <!-- <footer>
+  <footer>
     <p>Published: <time datetime="2024-12-29T02:38:00-05:00">
-        Sun 29 December 2024
+        2024-12-29
       </time></p>
-        <p>
+  </footer>
+  <!--         <p>
           Category: <a href="/category/misc.html">misc</a>
         </p>
   </footer> -->

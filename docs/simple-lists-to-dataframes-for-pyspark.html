@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>gross.systems - Simple lists to dataframes for PySpark</title>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Pelican" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="theme/css/main.css" />
+
+
+
+
+
+</head>
+
+<body>
+  <!-- <header>
+    <nav>
+      <ul>
+      </ul>
+    </nav>
+  </header> -->
+  <main>
+<article>
+  <header>
+    <h4>
+      <a href="/simple-lists-to-dataframes-for-pyspark.html" rel="bookmark" title="Permalink to Simple lists to dataframes for PySpark">Simple lists to dataframes for PySpark</a>
+    </h4>
+    
+  </header>
+  <p>Here’s a simple helper function I can’t believe I didn’t write sooner:</p>
+<hr>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pyspark</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">yipit_databricks_utils.helpers.pyspark_utils</span><span class="w"> </span><span class="kn">import</span><span class="w"> </span><span class="n">get_spark_session</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">list_to_df</span><span class="p">(</span><span class="n">items</span><span class="p">:</span><span class="w"> </span><span class="nb">list</span><span class="p">,</span><span class="w"> </span><span class="n">column</span><span class="p">:</span><span class="w"> </span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">unique</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">pyspark</span><span class="o">.</span><span class="n">sql</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Converts a python list to a dataframe with the given column name</span>
+
+<span class="s2">    Pass unique=True to only get distinct values. Order is not guaranteed to be preserved.</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="n">unique</span><span class="p">:</span>
+<span class="w">        </span><span class="n">items</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">items</span><span class="p">))</span>
+<span class="w">    </span><span class="n">df</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">items</span><span class="p">,</span><span class="w"> </span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="n">column</span><span class="p">])</span>
+<span class="w">    </span><span class="n">spark</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_spark_session</span><span class="p">()</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">spark</span><span class="o">.</span><span class="n">createDataFrame</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">df_to_list</span><span class="p">(</span><span class="n">df</span><span class="p">:</span><span class="w"> </span><span class="n">pyspark</span><span class="o">.</span><span class="n">sql</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span><span class="w"> </span><span class="n">column</span><span class="p">:</span><span class="w"> </span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">unique</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    Converts a column of a dataframe to a python list.</span>
+
+<span class="s2">    Pass unique=True to only get distinct values. Order is not guaranteed to be preserved.</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+<span class="w">    </span><span class="n">values</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">column</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="n">unique</span><span class="p">:</span>
+<span class="w">        </span><span class="n">values</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">values</span><span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span><span class="w"> </span><span class="n">row</span><span class="p">:</span><span class="w"> </span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="w"> </span><span class="n">values</span><span class="o">.</span><span class="n">collect</span><span class="p">()))</span>
+</code></pre></div>
+
+<hr>
+<p><strong>NOTE:</strong> <code>get_spark_session</code> is just a helper function to ensure we have spark defined. It is often already defined in many environments.</p>
+<p>These functions help bridge the gap between python code and dataframes. Something we have noticed in the past with Databricks is that is can be difficult to get small amounts of data into the system. There is plenty of support in general but the ergonomics of adding it can be less that ideal. These functions are another option to smooth that process.</p>
+<p>The existing workflow for this usually involves googling the question and getting an out of date response with RDDs or one that requires setting explicit types for PySpark. I find it to be a lot simpler to use Pandas to do the type inference and let Spark convert the pandas dataframe.</p>
+<p><em>This post was originally published on my medium blog.</em></p>
+  <footer>
+    <p>Published: <time datetime="2023-11-30T02:38:00-05:00">
+        2023-11-30
+      </time></p>
+  </footer>
+  <!--         <p>
+          Category: <a href="/category/misc.html">misc</a>
+        </p>
+  </footer> -->
+</article>
+  </main>
+</body>
+
+</html>
