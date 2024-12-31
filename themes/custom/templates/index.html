@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+{% block content_title %}
+{% endblock %}
+
+
+{% for article in articles_page.object_list %}
+<article>
+    <p><time datetime="{{ article.date.isoformat() }}"> {{ article.date.strftime("%Y-%m-%d") }} </time> | <a
+            href="{{ SITEURL }}/{{ article.url }}" rel="bookmark" title="Permalink to {{ article.title|striptags }}">{{
+            article.title }}</a></p>
+
+    <address>By
+        {% for author in article.authors %}
+        <a href="{{ SITEURL }}/{{ author.url }}">{{ author }}</a>
+        {% endfor %}
+    </address>
+</article>
+{% endfor %}
+
+{% if articles_page.has_other_pages() %}
+{% include 'pagination.html' %}
+{% endif %}
+
+{% endblock content %}

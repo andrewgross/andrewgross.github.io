@@ -1,32 +1,34 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-        <title>gross.systems - Docker and Inodes</title>
-      <meta charset="utf-8" />
-      <meta name="generator" content="Pelican" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<head>
+  <title>gross.systems - Docker and Inodes</title>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Pelican" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 
 
 
 
-  </head>
+</head>
 
-  <body>
-    <header>
-      <hgroup><h1><a href="/">gross.systems</a></h1></hgroup>
-      <nav><ul>
-      </ul></nav>
-    </header>
-    <main>
-  <article>
-    <header>
-      <h2>
-        <a href="/docker-and-inodes.html" rel="bookmark"
-           title="Permalink to Docker and Inodes">Docker and Inodes</a></h2>
-      
-    </header>
-    <p>Trying out Pelican as a static site generator. An interesting thing I noticed with my development environment is that docker is not great at seeing inode changes in mounted volumes. My setup is the following:</p>
+<body>
+  <!-- <header>
+    <nav>
+      <ul>
+      </ul>
+    </nav>
+  </header> -->
+  <main>
+<article>
+  <header>
+    <h4>
+      <a href="/docker-and-inodes.html" rel="bookmark" title="Permalink to Docker and Inodes">Docker and Inodes</a>
+    </h4>
+    
+  </header>
+  <p>Trying out Pelican as a static site generator. An interesting thing I noticed with my development environment is that docker is not great at seeing inode changes in mounted volumes. My setup is the following:</p>
 <ol>
 <li>Write changes in VSCode (laptop)</li>
 <li>VSCode Remote-SSH Session (server) handles syncing those changes from my laptop</li>
@@ -36,24 +38,16 @@
 <li>The Pelican server does not notice changes to files and pick them up with autoreload.</li>
 </ol>
 <p>My best guess is that docker doesn't get to see inode events for its mounted drives, at least in my default configuration.  A little digging shows <a href="https://forums.docker.com/t/inotify-is-not-triggering-any-events-in-docker-when-we-mount-it-from-the-host/104570">this</a> issue from 2021. Seems like some folks don't see this same issue. Not worth the deep dive at this time, I just opened a second shell on the server and ran <code>watch -n 1</code> with the generation command.</p>
-    <footer>
-      <p>Published: <time datetime="2024-12-29T02:38:00-05:00">
+  <!-- <footer>
+    <p>Published: <time datetime="2024-12-29T02:38:00-05:00">
         Sun 29 December 2024
       </time></p>
-        <address>
-          By             <a href="/author/andrew-gross.html">Andrew Gross</a>
-        </address>
         <p>
           Category: <a href="/category/misc.html">misc</a>
         </p>
-    </footer>
-  </article>
-    </main>
-    <footer>
-      <address>
-        Proudly powered by <a rel="nofollow" href="https://getpelican.com/">Pelican</a>,
-        which takes great advantage of <a rel="nofollow" href="https://www.python.org/">Python</a>.
-      </address>
-    </footer>
-  </body>
+  </footer> -->
+</article>
+  </main>
+</body>
+
 </html>
