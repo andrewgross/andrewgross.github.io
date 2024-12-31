@@ -1,7 +1,7 @@
 [project]
 name = "app"
 version = "0.1.0"
-description = "Add your description here"
+description = "Blog via Pelican Static Site Generator"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
