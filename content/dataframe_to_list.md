@@ -43,4 +43,4 @@ These functions help bridge the gap between python code and dataframes. Somethin
 
 The existing workflow for this usually involves googling the question and getting an out of date response with RDDs or one that requires setting explicit types for PySpark. I find it to be a lot simpler to use Pandas to do the type inference and let Spark convert the pandas dataframe.
 
-*This post was originally published on my medium blog.*
+*This post was originally published on my medium blog but moved here because medium sucks*

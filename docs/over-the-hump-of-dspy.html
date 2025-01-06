@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>gross.systems - Over the hump of DSPy</title>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Pelican" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="theme/css/main.css" />
+
+
+
+
+
+</head>
+
+<body>
+  <!-- <header>
+    <nav>
+      <ul>
+      </ul>
+    </nav>
+  </header> -->
+  <main>
+<article>
+  <header>
+    <h4>
+      <a href="/over-the-hump-of-dspy.html" rel="bookmark" title="Permalink to Over the hump of DSPy">Over the hump of DSPy</a>
+    </h4>
+    
+  </header>
+  <p>I finally got around to giving <a href="https://dspy.ai/">DSPy</a> a real shot. I had heard some pretty polarizing opinions on it in the past. Some folks thought of it like another LangChain, overly complex and too much abstraction for a simple thing. The other camp stopped writing prompts by hand entirely and just DSPy use instead.  </p>
+<p>My initial attempt a few months back to pick apart the (old) documentation lead to confusion and made my opinion lean towards the naysayers.  Signatures? Modules? It felt a bit abstract and the examples, at the time, were not very clear. However, coming back to this tool the past few days has been a much easier journey. The documentation is much cleaner and more consistent, and the examples are finally front and center.</p>
+<p>My recommendation is to skip the <a href="https://dspy.ai/learn/">Learn DSPy</a> documentation entirely when starting. Instead, work through a few of their <a href="https://dspy.ai/tutorials/entity_extraction/">Tutorials</a>.  The first tutorial is on RAG, and to be honest, doing yet another document retrieval based tutorial might induce permanent cranial damage to me at this point, so I skipped it.  I jumped ahead to the <a href="https://dspy.ai/tutorials/entity_extraction/">entity extraction</a> example since it was much more relevant to my daily work, and it was incredible.</p>
+<p>The example was generally pretty clear and concise, though I would recommend making sure you run <code>dspy.inspect_history(n=1)</code> after the initial test, before prompt optimization, to get a better feel for what has changed. That said, the workflow was great.  Being able to show up to a problem with a general statement or question, along with some labeled data, and automatically using that to bootstrap you way to a better prompt and few-shot examples is a dream. It will certainly save me a lot of time in the future.</p>
+<p>The results were pretty impressive. Using <code>NousResearch/Meta-Llama-3-8B-Instruct</code> at <code>BF16</code> on <code>vLLM</code>, the initial accuracy was approximately 52%.  Not too surprising given the lack of context or examples for what really needs to be extracted.  Running the tuning step brought it up to 92% after DSPy improved the prompt and selected several few shot examples. Obviously 92% isn't anything to write home about for simple entity extraction models, but as a starting point from ~250 total labeled examples, its pretty good. Especially considering I did nothing except define an extremely simple signature.</p>
+<p>I am looking forward to building out some ideas for a human in the loop system with DSPy, some LLMs, and some clustering models along with fine tuning a BERT model to see how quickly you can go from zero to cleaned data at scale.  These tools should really get us to a point where we can have a human focused on the decision boundary and not wasting their time elsewhere in the dataset.</p>
+<hr>
+<h3>Bonus</h3>
+<p>Reviewing the optimized prompt did provide a few laughts. I am not sure if the following is because I used a slightly dated Llama3 model instead of proprietary APIs, but I found it amusing to see that the idea of "saying your grandma will die if the LLM fails" is alive and well:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">In</span><span class="w"> </span><span class="nv">adhering</span><span class="w"> </span><span class="nv">to</span><span class="w"> </span><span class="nv">this</span><span class="w"> </span><span class="nv">structure</span>,<span class="w"> </span><span class="nv">your</span><span class="w"> </span><span class="nv">objective</span><span class="w"> </span><span class="nv">is</span>:<span class="w"> </span>
+<span class="w">        </span><span class="nv">In</span><span class="w"> </span><span class="nv">a</span><span class="w"> </span><span class="nv">high</span><span class="o">-</span><span class="nv">stakes</span><span class="w"> </span><span class="nv">scenario</span><span class="w"> </span><span class="nv">where</span><span class="w"> </span><span class="nv">a</span><span class="w"> </span><span class="nv">critical</span><span class="w"> </span><span class="nv">decision</span><span class="w"> </span><span class="nv">is</span><span class="w"> </span><span class="nv">being</span><span class="w"> </span><span class="nv">made</span><span class="w"> </span><span class="nv">about</span><span class="w"> </span><span class="nv">the</span><span class="w"> </span><span class="nv">containment</span><span class="w"> </span><span class="nv">of</span><span class="w"> </span><span class="nv">a</span><span class="w"> </span><span class="nv">pandemic</span>,<span class="w"> </span><span class="nv">extract</span><span class="w"> </span><span class="nv">all</span><span class="w"> </span><span class="nv">contiguous</span><span class="w"> </span><span class="nv">tokens</span><span class="w"> </span><span class="nv">referring</span><span class="w"> </span><span class="nv">to</span><span class="w"> </span><span class="nv">specific</span><span class="w"> </span><span class="nv">people</span><span class="w"> </span><span class="nv">from</span><span class="w"> </span><span class="nv">a</span><span class="w"> </span><span class="nv">list</span><span class="w"> </span><span class="nv">of</span><span class="w"> </span><span class="nv">string</span><span class="w"> </span><span class="nv">tokens</span>,<span class="w"> </span><span class="nv">including</span><span class="w"> </span><span class="nv">their</span><span class="w"> </span><span class="nv">names</span>,<span class="w"> </span><span class="nv">titles</span>,<span class="w"> </span><span class="nv">and</span><span class="w"> </span><span class="nv">affiliations</span>.<span class="w"> </span><span class="nv">Output</span><span class="w"> </span><span class="nv">a</span><span class="w"> </span><span class="nv">list</span><span class="w"> </span><span class="nv">of</span><span class="w"> </span><span class="nv">tokens</span>,<span class="w"> </span><span class="nv">without</span><span class="w"> </span><span class="nv">combining</span><span class="w"> </span><span class="nv">multiple</span><span class="w"> </span><span class="nv">tokens</span><span class="w"> </span><span class="nv">into</span><span class="w"> </span><span class="nv">a</span><span class="w"> </span><span class="nv">single</span><span class="w"> </span><span class="nv">value</span>.<span class="w"> </span><span class="nv">This</span><span class="w"> </span><span class="nv">information</span><span class="w"> </span><span class="nv">is</span><span class="w"> </span><span class="nv">crucial</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="nv">identifying</span><span class="w"> </span><span class="nv">key</span><span class="w"> </span><span class="nv">individuals</span><span class="w"> </span><span class="nv">involved</span><span class="w"> </span><span class="nv">in</span><span class="w"> </span><span class="nv">the</span><span class="w"> </span><span class="nv">decision</span><span class="o">-</span><span class="nv">making</span><span class="w"> </span><span class="nv">process</span><span class="w"> </span><span class="nv">and</span><span class="w"> </span><span class="nv">understanding</span><span class="w"> </span><span class="nv">their</span><span class="w"> </span><span class="nv">roles</span>.
+</code></pre></div>
+  <footer>
+    <p>Published: <time datetime="2025-01-05T00:00:00-05:00">
+        2025-01-05
+      </time></p>
+  </footer>
+  <!--         <p>
+          Category: <a href="/category/misc.html">misc</a>
+        </p>
+  </footer> -->
+</article>
+  </main>
+</body>
+
+</html>
