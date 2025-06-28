@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>gross.systems - Accidentally Leaking Private Registries via UV</title>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Pelican" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="theme/css/main.css" />
+
+
+
+
+
+</head>
+
+<body>
+  <!-- <header>
+    <nav>
+      <ul>
+      </ul>
+    </nav>
+  </header> -->
+  <main>
+<article>
+  <header>
+    <h1>
+      <a href="/accidentally-leaking-private-registries-via-uv.html" rel="bookmark" title="Permalink to Accidentally Leaking Private Registries via UV">Accidentally Leaking Private Registries via UV</a>
+    </h1>
+    
+  </header>
+  <p>I was messing around with Cursor Background agents to see what the fuss was about and I managed to (nearly) leak some private registry credentials.  In my work environment, we use a managed private Python package registry. This works similar to PyPI but we can also keep private packages.  It allows use to have a read through cache to PyPI, while getting a degree of auditability and security in addition to having private packages. </p>
+<p>As part of our dev setup, to ensure that we are always using this registry, we update our <code>.pypirc</code> or other equivalent configuration to make sure that any <code>pip install</code> or <code>uv add</code> will automatically fetch the appropriate endpoint.  This also handles authentication, API keys etc.  This is rather conventient and one of those things you setup once and forget even exists until there is a problem.</p>
+<p>In my experiments with Cursor Background agents, I focused on a small open source <a href="https://github.com/andrewgross/pyspark_transform_registry">project</a> I was working on to keep a tight scope and minimize the security scope.  One key thing for the agent setup is of course the environment. I leaned on <code>uv</code> to perform <a href="https://github.com/andrewgross/pyspark_transform_registry/blob/main/.cursor/environment.json">setup</a> due to speed and consistency.  This allowed me to have a pretty minimal installation by leveraging my UV lock file to repliace my local environment.</p>
+<p>Sounds great. UV doing a good job as usual. That was until I tried to actually run the agent. I received an error that <code>uv</code> couldn't install my packages as it was getting an <code>HTTP 404</code> from the endpoint.   Pretty usual behavior for PyPI.  Further digging revealed that the cause of the issue was my <code>uv.lock</code> file had been created using links to my private package registry, even though all packages being used were public.  As the Background Agent container did not have any credentials to access this registry, it failed to install the packages.</p>
+<p>The fix was rather simple, just update <code>pyproject.toml</code> to force UV to use PyPI by default for this project and regenerate the lock file:</p>
+<div class="highlight"><pre><span></span><code><span class="k">[[tool.uv.index]]</span>
+<span class="na">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;pyspark&quot;</span>
+<span class="na">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;https://pypi.org/simple&quot;</span>
+<span class="na">default</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">true</span>
+</code></pre></div>
+
+<p>Thankfully, no credentials were exposed, it would have just been paths to packages, though it seems like people ran into this <a href="https://github.com/astral-sh/uv/issues/8296">issue</a> with UV in the past.  Thankfully Astral quickly fixed the issue to minimize the chance of leaking credentials.</p>
+<p>A good reminder of how global dev environment setups can still be dangerous, though convenient.</p>
+<p><strong>Bonus:</strong> Cursor Backround agent docks are pretty lacking at the moment. Feel free to steal the linked env file above, or this <a href="https://github.com/andrewgross/pyspark_transform_registry/blob/main/.cursor/Dockerfile">Dockerfile</a> to get started with installs for UV and system packages.</p>
+  <footer>
+    <p>Published: <time datetime="2025-06-28T07:35:00-04:00">
+        2025-06-28
+      </time></p>
+  </footer>
+  <!--         <p>
+          Category: <a href="/category/misc.html">misc</a>
+        </p>
+  </footer> -->
+</article>
+  </main>
+</body>
+
+</html>
