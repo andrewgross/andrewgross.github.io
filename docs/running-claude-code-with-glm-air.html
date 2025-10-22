@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>gross.systems - Running Claude Code with GLM Air</title>
+  <meta charset="utf-8" />
+  <meta name="generator" content="Pelican" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" type="text/css" href="theme/css/main.css" />
+
+
+
+
+
+</head>
+
+<body>
+  <!-- <header>
+    <nav>
+      <ul>
+      </ul>
+    </nav>
+  </header> -->
+  <main>
+<article>
+  <header>
+    <h1>
+      <a href="/running-claude-code-with-glm-air.html" rel="bookmark" title="Permalink to Running Claude Code with GLM Air">Running Claude Code with GLM Air</a>
+    </h1>
+    
+  </header>
+  <p>Claude Code is fun and all, but I am curious how much is the model and how much is the prompting. It's also really expensive or locks you out. To this end, I wanted to try running Claude Code backed by a local model, named <a href="https://huggingface.co/zai-org/GLM-4.5-Air-FP8">GLM-Air-FP8</a>.  This took a bit of doing as a lot of the pieces aren't quite there yet.</p>
+<h3>Running GLM-Air on vLLM</h3>
+<p>GLM-Air is not a small model, as its an MoE with around 106B parameters, 12B active.  However, its "small enough" to be run with less than 8xH100s, which a nice change of pace. It also punches above its weight pretty well, closing in on Sonnet for coding, at least by the evals.</p>
+<p>To run it, I opted to go for dual RTX Pro 6000 Blackwell, as these have 96GB of VRAM each, allowing one to fit the model and a decent bit of context.  Z.ai even released a "native" FP8 version as an alternative to other forms of quantization. This makes more recently Nvidia GPUs ideal since they have native FP8 computation and can run things pretty quickly, in theory.  The reality is that most Blackwell stuff still has pretty spotty support, and the majority of support that is out there is for the B200 cards, which are actually coded a separate architecture anyways (<code>sm100</code> vs <code>sm120</code>).</p>
+<p>Based on the HF repo, I opted to try using vLLM as I have had success with it in the past and it generally aims for broad support for models and relative easy of use, versus the absolute fastest implementation (it is still plenty fast).  In addition, it expects to host multiple streams of communication, which is ideal if you expect Claude Code to be running things in parallel (think SubAgents).</p>
+<p>Getting vLLM running with FP8 and Blackwell support took jumping through some hoops. The final config looked something like this:</p>
+<ol>
+<li>Download the CUDA Toolkit 12.9.1 toolkit as a <a href="https://developer.nvidia.com/cuda-12-9-1-download-archive?target_os=Linux&amp;target_arch=x86_64&amp;Distribution=Ubuntu&amp;target_version=24.04&amp;target_type=runfile_local">runfile</a> (I never like using aptitude for this as it always seemed to update itself at the wrong time)</li>
+<li>On the host OS install the drivers and CUDA toolkit.</li>
+<li>Make sure you have <code>nvidia-container-toolkit</code> installed.</li>
+<li>Realize you destroyed your CUDA envs on all of your docker containers and get very sad.</li>
+<li>Copy the CUDA toolkit runfil into your docker container, but <strong>only</strong> install the toolkit, not the drivers.</li>
+<li>Make sure things look sane with <code>nvcc</code> and <code>nvidia-smi</code> reporting CUDA 12.9.1, CUDA_HOME finding the right version etc. (this step elides about 3 evenings of work)</li>
+<li>Install the latest vLLM</li>
+<li>Realize it doesn't work as it can't seem to find any compatible CUDA kernels.</li>
+<li>Spend a lot of time re-installing and recompiling vLLM, CUDA, torch, and <code>uv</code>.</li>
+<li>Discover the <code>--torch-backend cu129</code> flag for <code>uv pip install</code></li>
+<li>Realize you have an old version of NCCL, </li>
+<li>Realize you need to undo the changes you made to your BIOS for the 4090 p2p drivers.</li>
+<li>Realize you are a week into this project and haven't generated a single token locally.</li>
+<li>Realize you saved a 100GB model file directly into your docker image.</li>
+<li>Lookup how to prune docker images for the umteenth time.</li>
+<li>Install Flash Attention properly for vLLM.</li>
+<li>Get vLLM working and get.... <em>70 tok/s</em> for bs=1.</li>
+</ol>
+<p>In the end of the saga, 70 tok/s wasn't bad, as it is actually on par with what the Anthropic API's usually push out for thier models. However, there was the lingering issue of GLM-4.5 adverting something called MTP. Essentially an in-built draft model you can use with speculative execution. vLLM claimed to support it but I couldn't figure out how to enable it or get it running (Edit: See this <a href="https://github.com/F1LM1/llama.cpp/pull/2">issue</a> for details). The vLLM GLM-4.5 docs and the GLM-4.5 HF space didn't give instructions.  So why not throw out all of this work and try to get SGLang working instead?</p>
+<h3>Running GLM-Air on SGLang</h3>
+<p>SGLang is definitely not quite as easy to work with as vLLM. It leans more towards the "this is intended to be used by serious hosting places" and doesn't seem to have quite the same coverage in models and quantizations. However, it can be pretty fast (5-15% by some estimations).  But, there was another bonus. The documentation from the Z.ai team explicitly mentioned how to enable MTP on SGLang. That could be interesting.</p>
+<p>Getting SGLang running went even deeper than the vLLM rabbit hole, but at least we had CUDA mostly sorted at this point.</p>
+<ol>
+<li>Install SGLang from the docs, realize it points you to a different version (0.5.2.rc2) than their latest release (0.5.1), which is not actually the latest release, thats 0.5.1.post3 (this matters later). At least they encourage you to use <code>uv</code></li>
+<li>Try running SGLang with the params mentioned </li>
+<li>Get a lot of CUDA errors.  The initial ones were the usual suspects, making sure you have all of your libraries installed properly, <code>python3-dev</code>, <code>nccl</code>, etc.  The later ones were where it really hurt.</li>
+<li>Realize that you are getting to the CUDA graph capturing stage when it keeps blowing up, suggesting OOM.</li>
+<li>Fiddle with <code>--mem-fraction-static</code> and <code>--cuda-graph-max-bs</code> endlessly to no avail.</li>
+<li>Try using a much smaller model, like Qwen3-8B but get the same errors, hinting that its not really about VRAM.</li>
+<li>Reread the error message to realize its complaining about <a href="https://github.com/sgl-project/sglang/issues/7249">RMSNorm</a>.</li>
+<li>Spend a lot of quality time in Github issues and figure out you need to install a special <code>sgl-kernel</code> via a wheel, specifically for cuda 12.9 and python 3.10. This got some models, like Qwen3-8B running on SGLang.</li>
+<li>Try to run GLM-4.5-Air-FP8 and get another set of errors when capturing the CUDA graph.</li>
+<li>Discover that its because the Cutlass FP8 kernels aren't really working yet in non-B200 Blackwell cards in SGLang.</li>
+<li>Discover we can fall back to Triton using the completely undocumented <code>USE_TRITON_W8A8_FP8_KERNEL</code> env var.</li>
+<li>Run SGLang with out model and get tokens out! 70-80 tok/s! Weirdly, it blew up after one response but hey, progress.</li>
+<li>See that the error mentions running out of memory <code>Failed a config with error out of resource: shared memory, Required: 131072, Hardware limit: 101376.</code></li>
+<li>Spend a lot more time futzing around with context lengths and cuda block sizes again with no luck.</li>
+<li>Try enabling MTP anyways and get... <strong>180 tok/s</strong>.  Still not working reliably but thats a pretty heft carrot to keep chasing this down.</li>
+<li>Discover <a href="https://www.jamesflare.com/tuning-fused-moe-triton/">this blog post</a>. Triton wants to you generate a config for your hardware so it knows what size operations it can use. I didn't have that, so it fell apart as soon as it got enough data to need a larger size.</li>
+<li>Try to run the tuning function. Get all kinds of import errors.</li>
+<li>Discover that <code>0.5.2rc2</code> moved around a lot of stuff for Triton configs and did not update the tuning scripts.</li>
+<li>Roll back to <code>0.5.1</code> and discover other things are now broken in the tuning scripts.</li>
+<li>Roll forward to <code>0.5.1.post3</code> (after a lot of Git Blame and following tags on Github) and get the tuning scripts to run.</li>
+<li>Watch the tuning script run suspiciously fast but find no kernels.</li>
+<li>Edit the tuning script to stop swalling exceptions and print the error and realize that CUDA broke again.</li>
+<li>Properly reinstall <code>torch</code> and <code>triton</code> with the proper CUDA connection, and reinstall <code>0.5.1</code> from source.</li>
+<li>Finally get the tuning job running.</li>
+<li>Realize its going to take hours.</li>
+<li>Write a blog post while you wait.</li>
+<li>Discover that SGLang does have RTX 6000 Pro Blackwell Max-Q Workstation configs that its just not using for some reason.</li>
+<li>Try not to cry</li>
+<li>Cry a lot.</li>
+<li>Finish generating your configs. Move them to the appropriate folder in SGLang. Run SGLang from your git checkout.</li>
+<li>It works! GLM-Air-FP8 went from ~70 tok/s on 2x RTX6000 Pro to over 200 tok/s with MTP enabled at bs=1!</li>
+<li>Create <a href="https://github.com/sgl-project/sglang/pull/10243">PR</a> to SGLang with the configs. Watch it languish.</li>
+</ol>
+<h3>Translating APIs</h3>
+<p>vLLM and SGLang are in the process of <a href="https://github.com/vllm-project/vllm/issues/21313">adding</a> <a href="https://github.com/sgl-project/sglang/pull/8149">support</a> for Anthropic API compatibility. I suspect driven by the popularity of Claude Code. In the mean time, I didn't want to fight all of my prior battles again but on a fork for API compat. Instead, I looked to LiteLLM. It has the capability to translate receive API calls in one format and translate them to another. In this case, it would "host" the Anthropic API and proxy it to the OpenAI API format for SGLang.  Overall it worked pretty well. Still need to investigate some things for tool calls, in particular web search.</p>
+<h3>Actually Configuring Claude Code</h3>
+<ul>
+<li>Make sure your models are aliased properly in LiteLLM.</li>
+<li>Its like two env vars to start</li>
+<li>No need to for a smaller model as GLM-Air is already faster than Haiku, just use it for everything.</li>
+</ul>
+<h1>tl;dr</h1>
+<ol>
+<li>Clone a copy of SGLang from <strong>at least</strong> 0.5.1.post3 (newer is probably better)</li>
+<li>Grab my copies of configs for MTP-enabled Triton FP8 kernels for RTX 6000 Pro Workstation cards or generate your own</li>
+<li>Place them as seen in this <a href="https://github.com/sgl-project/sglang/pull/10243">PR</a></li>
+<li>Compile / build SGLang as appropriate</li>
+<li>Run your server (inside venv):  <code>USE_TRITON_W8A8_FP8_KERNEL=1 python3 -m sglang.launch_server   --model-path zai-org/GLM-4.5-Air-FP8   --tp-size 2   --tool-call-parser glm45    --reasoning-parser glm45   --speculative-algorithm EAGLE   --speculative-num-steps 3   --speculative-eagle-topk 1   --speculative-num-draft-tokens 4   --mem-fraction-static 0.94   --served-model-name glm-4.5-air   --host 0.0.0.0   --port 8000</code></li>
+</ol>
+  <footer>
+    <p>Published: <time datetime="2025-09-08T09:51:00-04:00">
+        2025-09-08
+      </time></p>
+  </footer>
+  <!--         <p>
+          Category: <a href="/category/misc.html">misc</a>
+        </p>
+  </footer> -->
+</article>
+  </main>
+</body>
+
+</html>
